@@ -21,6 +21,16 @@ Turn PNG, JPG, or WebP character artwork into correctly sized, foldable paper mi
 
 Artwork is processed locally and never leaves the browser.
 
+## Tool Roadmap
+
+The overview catalog currently proposes three focused additions:
+
+- **Encounter Board:** initiative, conditions, concentration, and round tracking in a table-friendly view.
+- **Token Smith:** reuse the existing image and A4 layout foundations to create printable round tokens.
+- **Session Sheet:** turn scenes, NPCs, clues, and secrets into a concise printable reference.
+
+Token Smith is the strongest next implementation candidate because it can reuse Standeecrafter's image handling, physical units, packing algorithm, and print workflow. Encounter Board would provide the most value during play, but introduces persistent interactive state and should follow a small shared storage module.
+
 ## GitHub Pages
 
 The repository uses the static site workflow in [.github/workflows/static-site.yml](.github/workflows/static-site.yml).
@@ -38,7 +48,11 @@ Releases use semantic versioning with a plain text [VERSION](VERSION) file. Keep
 ```text
 index.html                    Tool overview
 standee.html                  Standeecrafter markup
-src/main.ts                   Standeecrafter behavior and print layout
+src/overview/main.ts          Data-driven overview rendering
+src/shared/tool-catalog.ts    Tool catalog and roadmap definitions
+src/standee/main.ts           Standeecrafter UI and browser events
+src/standee/layout.ts         Pure sizing and A4 packing logic
+src/standee/types.ts          Standeecrafter domain types
 styles.css                    Shared responsive and print styles
 vite.config.ts                Multi-page static build configuration
 VERSION                       Plain semantic version

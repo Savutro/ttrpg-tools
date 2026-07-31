@@ -1,51 +1,21 @@
+import {
+  expandStandees,
+  getLabelSpaceMm,
+  MM_PER_INCH,
+  packStandees,
+  PAGE_HEIGHT_MM,
+  PAGE_WIDTH_MM
+} from "./layout";
+import type { ExpandedStandee, SelectedImage, Standee } from "./types";
+
 (() => {
   'use strict';
 
-  const MM_PER_INCH = 25.4;
-  const PAGE_WIDTH_MM = 210;
-  const PAGE_HEIGHT_MM = 297;
   const $ = <T extends Element>(selector: string): T => {
     const element = document.querySelector<T>(selector);
     if (!element) throw new Error(`Required element not found: ${selector}`);
     return element;
   };
-
-  interface SelectedImage {
-    src: string;
-    filename: string;
-    width: number;
-    height: number;
-    aspectRatio: number;
-  }
-
-  interface Standee {
-    id: number;
-    name: string;
-    src: string;
-    filename: string;
-    imageWidth: number;
-    imageHeight: number;
-    aspectRatio: number;
-    baseWidthInches: number;
-    heightOverrideInches: number | null;
-    copies: number;
-  }
-
-  interface ExpandedStandee extends Standee {
-    widthMm: number;
-    artworkHeightMm: number;
-    panelHeightMm: number;
-    totalHeightMm: number;
-    tabHeightMm: number;
-    topSpaceMm: number;
-    bottomSpaceMm: number;
-  }
-
-  interface PlacedStandee extends ExpandedStandee {
-    oversized: boolean;
-    x: number;
-    y: number;
-  }
 
   const ui = {
     fileInput: $<HTMLInputElement>('#fileInput'),
@@ -199,82 +169,6 @@
     render();
   }
 
-  function expandedStandees() {
-    const tabHeightMm = Math.max(0, numericValue(ui.glueTab, 8));
-    const labelSizePt = Math.max(0, numericValue(ui.labelSize, 7));
-    const topSpaceMm = ui.showLabels.checked && labelSizePt > 0
-      ? Math.max(4, (labelSizePt * 0.3528) + 2.2)
-      : 0;
-    const bottomSpaceMm = Math.max(0, numericValue(ui.bottomSpace, 0));
-    const output: ExpandedStandee[] = [];
-
-    for (const standee of standees) {
-      const widthMm = standee.baseWidthInches * MM_PER_INCH;
-      const panelHeightInches = standee.heightOverrideInches || (standee.baseWidthInches * standee.aspectRatio);
-      const artworkHeightMm = panelHeightInches * MM_PER_INCH;
-      const panelHeightMm = artworkHeightMm + topSpaceMm + bottomSpaceMm;
-      const totalHeightMm = (panelHeightMm * 2) + tabHeightMm;
-
-      for (let copy = 0; copy < standee.copies; copy += 1) {
-        output.push({
-          ...standee,
-          widthMm,
-          artworkHeightMm,
-          panelHeightMm,
-          totalHeightMm,
-          tabHeightMm,
-          topSpaceMm,
-          bottomSpaceMm
-        });
-      }
-    }
-    return output;
-  }
-
-  function packStandees(items: ExpandedStandee[], availableWidth: number, availableHeight: number, gap: number): PlacedStandee[][] {
-    const pages: PlacedStandee[][] = [];
-    let currentPage: PlacedStandee[] = [];
-    let x = 0;
-    let y = 0;
-    let rowHeight = 0;
-
-    for (const item of items) {
-      const oversized = item.widthMm > availableWidth || item.totalHeightMm > availableHeight;
-      const placedItem = { ...item, oversized };
-
-      if (oversized) {
-        if (currentPage.length) pages.push(currentPage);
-        pages.push([{ ...placedItem, x: 0, y: 0 }]);
-        currentPage = [];
-        x = 0;
-        y = 0;
-        rowHeight = 0;
-        continue;
-      }
-
-      if (x > 0 && x + item.widthMm > availableWidth) {
-        x = 0;
-        y += rowHeight + gap;
-        rowHeight = 0;
-      }
-
-      if (currentPage.length && y + item.totalHeightMm > availableHeight) {
-        pages.push(currentPage);
-        currentPage = [];
-        x = 0;
-        y = 0;
-        rowHeight = 0;
-      }
-
-      currentPage.push({ ...placedItem, x, y });
-      x += item.widthMm + gap;
-      rowHeight = Math.max(rowHeight, item.totalHeightMm);
-    }
-
-    if (currentPage.length) pages.push(currentPage);
-    return pages;
-  }
-
   function createSide(className: 'front-side' | 'back-side', standee: ExpandedStandee) {
     const side = document.createElement('div');
     side.className = `panel-side ${className}`;
@@ -326,7 +220,18 @@
     const gapMm = Math.max(0, numericValue(ui.itemGap, 4));
     const availableWidth = PAGE_WIDTH_MM - (marginMm * 2);
     const availableHeight = PAGE_HEIGHT_MM - (marginMm * 2);
-    const pages = packStandees(expandedStandees(), availableWidth, availableHeight, gapMm);
+    const layoutSettings = {
+      tabHeightMm: Math.max(0, numericValue(ui.glueTab, 8)),
+      labelSizePt: Math.max(0, numericValue(ui.labelSize, 7)),
+      showLabels: ui.showLabels.checked,
+      bottomSpaceMm: Math.max(0, numericValue(ui.bottomSpace, 0))
+    };
+    const pages = packStandees(
+      expandStandees(standees, layoutSettings),
+      availableWidth,
+      availableHeight,
+      gapMm
+    );
 
     ui.pages.innerHTML = '';
     hasOversizedItems = pages.some((page) => page.some((item) => item.oversized));
@@ -392,8 +297,7 @@
     }
 
     if (hasOversizedItems) {
-      const labelSizePt = Math.max(0, numericValue(ui.labelSize, 7));
-      const topSpaceMm = ui.showLabels.checked && labelSizePt > 0 ? Math.max(4, (labelSizePt * 0.3528) + 2.2) : 0;
+      const topSpaceMm = getLabelSpaceMm(layoutSettings);
       const reservedSpaceMm = topSpaceMm + Math.max(0, numericValue(ui.bottomSpace, 0));
       const maxArtworkHeightMm = Math.max(0, ((availableHeight - Math.max(0, numericValue(ui.glueTab, 8))) / 2) - reservedSpaceMm);
       ui.layoutWarning.innerHTML = `<strong>One or more standees are too tall for A4.</strong> With the current margins, label, bottom clearance, and glue tab, the maximum character height is ${(maxArtworkHeightMm / MM_PER_INCH).toFixed(2)} inches. Enter a smaller optional height for those standees before printing.`;

@@ -25,7 +25,9 @@ jobs:
           set -euo pipefail
           test -f index.html
           test -f standee.html
-          test -f src/main.ts
+          test -f src/standee/main.ts
+          test -f src/standee/layout.ts
+          test -f src/shared/tool-catalog.ts
           test -f styles.css
           test -f CHANGELOG.md
           test -f VERSION

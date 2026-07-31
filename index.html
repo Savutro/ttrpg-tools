@@ -33,23 +33,7 @@
         <p>More workshop drawers will appear here as they are forged.</p>
       </div>
 
-      <div class="tool-grid">
-        <a class="tool-card available" href="standee.html">
-          <span class="tool-icon" aria-hidden="true">♙</span>
-          <span class="tool-status">Available now</span>
-          <h3>Standeecrafter</h3>
-          <p>Turn character artwork into correctly sized, foldable paper miniatures arranged on printable A4 sheets.</p>
-          <span class="tool-action">Open the forge <span aria-hidden="true">→</span></span>
-        </a>
-
-        <article class="tool-card forthcoming">
-          <span class="tool-icon" aria-hidden="true">✧</span>
-          <span class="tool-status">Future tool</span>
-          <h3>The next useful thing</h3>
-          <p>This space is ready for another focused helper for the table, without turning the toolbox into a campaign manager.</p>
-          <span class="tool-action">Still at the sketching table</span>
-        </article>
-      </div>
+      <div class="tool-grid" id="toolCatalog"></div>
     </section>
   </main>
 
@@ -57,5 +41,6 @@
     <span>TTRPG Tools</span>
     <span>Made for tables, not trackers.</span>
   </footer>
+  <script type="module" src="./src/overview/main.ts"></script>
 </body>
 </html>
