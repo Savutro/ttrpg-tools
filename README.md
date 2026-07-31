@@ -37,9 +37,9 @@ Token Smith is the strongest next implementation candidate because it can reuse 
 
 The repository uses the static site workflow in [.github/workflows/static-site.yml](.github/workflows/static-site.yml).
 
-- Pull requests install dependencies and validate the static build.
-- Pushes to `main` build and deploy `dist` to GitHub Pages.
+- Pull requests and pushes to `main` install dependencies and validate the static build.
 - Tags such as `v1.0.0` create a GitHub release from `CHANGELOG.md`.
+- After the release succeeds, that exact tagged revision is built and deployed to GitHub Pages.
 
 ## Versioning
 
