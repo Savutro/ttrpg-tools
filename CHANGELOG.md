@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4 - 2026-07-31
+
+### CI
+
+- **gh-pages:** try to fix the deployment and release issue (`3bb1bd2`)
+
 ## 0.1.3 - 2026-07-31
 
 _No matching commits found._
