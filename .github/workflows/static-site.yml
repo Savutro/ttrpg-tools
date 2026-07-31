@@ -35,34 +35,6 @@ jobs:
           npm ci
           npm run build
 
-  pages:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [validate, release]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-      - name: Build site
-        run: |
-          npm ci
-          npm run build
-      - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: dist
-      - id: deployment
-        uses: actions/deploy-pages@v4
-
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: validate

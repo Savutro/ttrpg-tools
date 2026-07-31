@@ -39,7 +39,7 @@ The repository uses the static site workflow in [.github/workflows/static-site.y
 
 - Pull requests and pushes to `main` install dependencies and validate the static build.
 - Tags such as `v1.0.0` create a GitHub release from `CHANGELOG.md`.
-- After the release succeeds, that exact tagged revision is built and deployed to GitHub Pages.
+- After the tagged release workflow succeeds, [pages.yml](.github/workflows/pages.yml) builds that exact revision and deploys it to GitHub Pages.
 
 ## Versioning
 
