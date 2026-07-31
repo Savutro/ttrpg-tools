@@ -1,11 +1,19 @@
 # Changelog
 
-## 0.1.0 - 2026-07-31
+## 0.1.1 - 2026-07-31
 
 ### Feature
 
 - add vite and ts, add overview page (`688570b`)
 - setup baseline mvp (`3ef00d1`)
+
+### Refactor
+
+- improve code separation (`fbc5127`)
+
+### Chore
+
+- add cname (`e6667e1`)
 
 ### Other
 
