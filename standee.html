@@ -45,12 +45,11 @@
           <div>
             <strong id="selectedFilename"></strong>
             <small id="selectedDimensions"></small>
-            <small>The image remains selected after adding a standee.</small>
           </div>
         </div>
 
         <div class="field">
-          <label for="characterName">Character name</label>
+          <label for="characterName">Group name</label>
           <input id="characterName" autocomplete="off" placeholder="e.g. Brynn, Ashen Warden">
         </div>
 
@@ -68,9 +67,9 @@
 
         <div class="two-columns">
           <div class="field">
-            <label for="heightOverride">Height in inches <span class="optional">optional</span></label>
+            <label for="heightOverride">Height <span class="optional">optional</span></label>
             <input id="heightOverride" type="number" min="0.25" max="12" step="0.05" placeholder="Auto">
-            <small id="autoHeightHint" class="field-hint">Chosen automatically from the image.</small>
+            <small id="autoHeightHint" class="field-hint">Uses the image ratio.</small>
           </div>
           <div class="field">
             <label for="copies">Copies</label>
@@ -79,8 +78,9 @@
         </div>
 
         <button class="primary-action" id="addStandee" type="button">
-          <span aria-hidden="true">＋</span> Add standee to sheet
+          <span aria-hidden="true">＋</span> <span id="standeeActionLabel">Add group to sheet</span>
         </button>
+        <button class="ghost-action" id="cancelEdit" type="button" hidden>Cancel editing</button>
       </section>
 
       <section class="panel">
@@ -94,7 +94,7 @@
           <div class="field"><label for="itemGap">Standee gap</label><div class="unit-input"><input id="itemGap" type="number" min="0" max="15" value="4"><span>mm</span></div></div>
           <div class="field"><label for="glueTab">Glue tab</label><div class="unit-input"><input id="glueTab" type="number" min="0" max="20" value="8"><span>mm</span></div></div>
           <div class="field"><label for="labelSize">Label size</label><div class="unit-input"><input id="labelSize" type="number" min="0" max="16" value="7"><span>pt</span></div></div>
-          <div class="field"><label for="bottomSpace">Bottom clearance <span class="optional">optional</span></label><div class="unit-input"><input id="bottomSpace" type="number" min="0" max="30" step="0.5" value="0"><span>mm</span></div><small>Extra material for an acrylic stand.</small></div>
+          <div class="field field-wide"><label for="bottomSpace">Acrylic stand clearance <span class="optional">optional</span></label><div class="unit-input"><input id="bottomSpace" type="number" min="0" max="30" step="0.5" value="0"><span>mm</span></div></div>
         </div>
 
         <div class="toggle-grid">
@@ -106,7 +106,7 @@
       <section class="panel roster-panel">
         <div class="panel-heading compact">
           <span class="rune" aria-hidden="true">III</span>
-          <div><p class="step">Your roster</p><h2>Standees on the sheet</h2></div>
+          <div><p class="step">Your roster</p><h2>Mini groups</h2></div>
         </div>
         <div id="roster" class="roster"></div>
       </section>

@@ -7,6 +7,7 @@ import {
   PAGE_WIDTH_MM
 } from "./layout";
 import type { ExpandedStandee, SelectedImage, Standee } from "./types";
+import { loadPreferences, savePreferences, type StandeePreferences } from "./preferences";
 
 (() => {
   'use strict';
@@ -31,6 +32,8 @@ import type { ExpandedStandee, SelectedImage, Standee } from "./types";
     autoHeightHint: $<HTMLElement>('#autoHeightHint'),
     copies: $<HTMLInputElement>('#copies'),
     addStandee: $<HTMLButtonElement>('#addStandee'),
+    standeeActionLabel: $<HTMLElement>('#standeeActionLabel'),
+    cancelEdit: $<HTMLButtonElement>('#cancelEdit'),
     pageMargin: $<HTMLInputElement>('#pageMargin'),
     itemGap: $<HTMLInputElement>('#itemGap'),
     glueTab: $<HTMLInputElement>('#glueTab'),
@@ -47,6 +50,7 @@ import type { ExpandedStandee, SelectedImage, Standee } from "./types";
 
   let selectedImage: SelectedImage | null = null;
   let standees: Standee[] = [];
+  let editingId: number | null = null;
   let nextId = 1;
   let hasOversizedItems = false;
 
@@ -58,6 +62,39 @@ import type { ExpandedStandee, SelectedImage, Standee } from "./types";
   const escapeHtml = (value: unknown): string => String(value).replace(/[&<>'"]/g, (character) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
   } satisfies Record<string, string>)[character] ?? character);
+
+  function currentPreferences(): StandeePreferences {
+    return {
+      creatureSize: ui.creatureSize.value,
+      heightOverride: ui.heightOverride.value,
+      copies: ui.copies.value,
+      pageMargin: ui.pageMargin.value,
+      itemGap: ui.itemGap.value,
+      glueTab: ui.glueTab.value,
+      labelSize: ui.labelSize.value,
+      bottomSpace: ui.bottomSpace.value,
+      showLabels: ui.showLabels.checked,
+      showLines: ui.showLines.checked
+    };
+  }
+
+  function restorePreferences(): void {
+    const preferences = loadPreferences();
+    const textFields = [
+      'creatureSize', 'heightOverride', 'copies', 'pageMargin',
+      'itemGap', 'glueTab', 'labelSize', 'bottomSpace'
+    ] as const;
+
+    for (const key of textFields) {
+      if (typeof preferences[key] === 'string') ui[key].value = preferences[key];
+    }
+    if (typeof preferences.showLabels === 'boolean') ui.showLabels.checked = preferences.showLabels;
+    if (typeof preferences.showLines === 'boolean') ui.showLines.checked = preferences.showLines;
+  }
+
+  function persistPreferences(): void {
+    savePreferences(currentPreferences());
+  }
 
   const readFileAsDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -94,7 +131,7 @@ import type { ExpandedStandee, SelectedImage, Standee } from "./types";
 
       ui.selectedPreview.src = src;
       ui.selectedFilename.textContent = file.name;
-      ui.selectedDimensions.textContent = `${dimensions.width} × ${dimensions.height}px · ${selectedImage.aspectRatio.toFixed(2)}:1 height ratio`;
+      ui.selectedDimensions.textContent = `${dimensions.width} × ${dimensions.height}px`;
       ui.selectedArt.hidden = false;
       ui.uploadTitle.textContent = 'Choose a different artwork';
 
@@ -112,24 +149,18 @@ import type { ExpandedStandee, SelectedImage, Standee } from "./types";
     return Math.max(0.25, numericValue(ui.creatureSize, 1));
   }
 
-  function getPanelHeightInches(image: SelectedImage, overrideValue = ui.heightOverride.value) {
-    const override = Number.parseFloat(overrideValue);
-    if (Number.isFinite(override) && override > 0) return override;
-    return getBaseWidthInches() * image.aspectRatio;
-  }
-
   function updateAutoHeightHint() {
     if (!selectedImage) {
-      ui.autoHeightHint.textContent = 'Chosen automatically from the image.';
+      ui.autoHeightHint.textContent = 'Uses the image ratio.';
       return;
     }
     const autoHeight = getBaseWidthInches() * selectedImage.aspectRatio;
     ui.autoHeightHint.textContent = ui.heightOverride.value
-      ? `Manual height. Automatic would be ${autoHeight.toFixed(2)} inches.`
-      : `Automatic height: ${autoHeight.toFixed(2)} inches from the image ratio.`;
+      ? `Auto would be ${autoHeight.toFixed(2)}″.`
+      : `Auto: ${autoHeight.toFixed(2)}″.`;
   }
 
-  function addStandee() {
+  function saveStandee() {
     if (!selectedImage) {
       window.alert('Choose character artwork first.');
       return;
@@ -140,8 +171,8 @@ import type { ExpandedStandee, SelectedImage, Standee } from "./types";
     const copies = Math.min(50, Math.max(1, Math.floor(numericValue(ui.copies, 1))));
     const fallbackName = selectedImage.filename.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
 
-    standees.push({
-      id: nextId++,
+    const group: Standee = {
+      id: editingId ?? nextId++,
       name: ui.characterName.value.trim() || fallbackName,
       src: selectedImage.src,
       filename: selectedImage.filename,
@@ -151,10 +182,51 @@ import type { ExpandedStandee, SelectedImage, Standee } from "./types";
       baseWidthInches,
       heightOverrideInches: Number.isFinite(heightOverride) && heightOverride > 0 ? heightOverride : null,
       copies
-    });
+    };
 
-    // Deliberately keep the chosen file, preview, name, size, and height in the builder.
+    if (editingId === null) {
+      standees.push(group);
+    } else {
+      standees = standees.map((standee) => standee.id === editingId ? group : standee);
+    }
+
+    persistPreferences();
+    finishEditing();
     render();
+  }
+
+  function editStandee(id: number): void {
+    const standee = standees.find((item) => item.id === id);
+    if (!standee) return;
+
+    editingId = id;
+    selectedImage = {
+      src: standee.src,
+      filename: standee.filename,
+      width: standee.imageWidth,
+      height: standee.imageHeight,
+      aspectRatio: standee.aspectRatio
+    };
+    ui.selectedPreview.src = standee.src;
+    ui.selectedFilename.textContent = standee.filename;
+    ui.selectedDimensions.textContent = `${standee.imageWidth} × ${standee.imageHeight}px`;
+    ui.selectedArt.hidden = false;
+    ui.uploadTitle.textContent = 'Choose different artwork';
+    ui.characterName.value = standee.name;
+    ui.creatureSize.value = String(standee.baseWidthInches);
+    ui.heightOverride.value = standee.heightOverrideInches?.toString() ?? '';
+    ui.copies.value = String(standee.copies);
+    ui.standeeActionLabel.textContent = 'Update group';
+    ui.cancelEdit.hidden = false;
+    updateAutoHeightHint();
+    renderRoster();
+  }
+
+  function finishEditing(): void {
+    editingId = null;
+    ui.characterName.value = '';
+    ui.standeeActionLabel.textContent = 'Add group to sheet';
+    ui.cancelEdit.hidden = true;
   }
 
   function duplicateStandee(id: number) {
@@ -166,6 +238,7 @@ import type { ExpandedStandee, SelectedImage, Standee } from "./types";
 
   function removeStandee(id: number) {
     standees = standees.filter((standee) => standee.id !== id);
+    if (editingId === id) finishEditing();
     render();
   }
 
@@ -201,7 +274,7 @@ import type { ExpandedStandee, SelectedImage, Standee } from "./types";
       const height = standee.heightOverrideInches || (standee.baseWidthInches * standee.aspectRatio);
       const mode = standee.heightOverrideInches ? 'manual' : 'auto';
       return `
-        <article class="roster-item">
+        <article class="roster-item${standee.id === editingId ? ' editing' : ''}" data-id="${standee.id}" tabindex="0" aria-label="Edit ${escapeHtml(standee.name)}">
           <img class="roster-thumb" src="${standee.src}" alt="">
           <div class="roster-copy">
             <strong title="${escapeHtml(standee.name)}">${escapeHtml(standee.name)}</strong>
@@ -325,28 +398,50 @@ import type { ExpandedStandee, SelectedImage, Standee } from "./types";
     if (file) selectFile(file);
   });
 
-  ui.addStandee.addEventListener('click', addStandee);
+  ui.addStandee.addEventListener('click', saveStandee);
+  ui.cancelEdit.addEventListener('click', () => {
+    finishEditing();
+    renderRoster();
+  });
   ui.creatureSize.addEventListener('change', updateAutoHeightHint);
   ui.heightOverride.addEventListener('input', updateAutoHeightHint);
 
   ui.roster.addEventListener('click', (event) => {
     const button = (event.target as Element | null)?.closest<HTMLButtonElement>('button[data-action]');
-    if (!button) return;
-    const id = Number.parseInt(button.dataset.id ?? '', 10);
+    const row = (event.target as Element | null)?.closest<HTMLElement>('.roster-item[data-id]');
+    const id = Number.parseInt(button?.dataset.id ?? row?.dataset.id ?? '', 10);
     if (!Number.isFinite(id)) return;
-    if (button.dataset.action === 'duplicate') duplicateStandee(id);
-    if (button.dataset.action === 'remove') removeStandee(id);
+    if (button?.dataset.action === 'duplicate') duplicateStandee(id);
+    else if (button?.dataset.action === 'remove') removeStandee(id);
+    else editStandee(id);
+  });
+  ui.roster.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const row = (event.target as Element | null)?.closest<HTMLElement>('.roster-item[data-id]');
+    if (!row || (event.target as Element).closest('button')) return;
+    event.preventDefault();
+    editStandee(Number.parseInt(row.dataset.id ?? '', 10));
   });
 
   [ui.pageMargin, ui.itemGap, ui.glueTab, ui.labelSize, ui.bottomSpace, ui.showLabels, ui.showLines]
     .forEach((element) => {
       element.addEventListener('input', renderPages);
-      element.addEventListener('change', renderPages);
+      element.addEventListener('input', persistPreferences);
+      element.addEventListener('change', () => {
+        persistPreferences();
+        renderPages();
+      });
     });
+
+  [ui.creatureSize, ui.heightOverride, ui.copies].forEach((element) => {
+    element.addEventListener('input', persistPreferences);
+    element.addEventListener('change', persistPreferences);
+  });
 
   ui.clearButton.addEventListener('click', () => {
     if (standees.length && !window.confirm('Remove every standee from the sheet?')) return;
     standees = [];
+    finishEditing();
     render();
   });
 
@@ -362,5 +457,7 @@ import type { ExpandedStandee, SelectedImage, Standee } from "./types";
     window.print();
   });
 
+  restorePreferences();
+  updateAutoHeightHint();
   render();
 })();

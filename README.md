@@ -15,11 +15,13 @@ Turn PNG, JPG, or WebP character artwork into correctly sized, foldable paper mi
 
 - choose a standard creature base size or enter a custom height
 - add labels and duplicate characters
+- click a mini group to edit its name, artwork, size, height, or copy count
 - reserve optional clearance for acrylic stands
 - arrange multiple miniatures across printable A4 sheets
 - print at actual size or save the sheets as a PDF
 
 Artwork is processed locally and never leaves the browser.
+Sizing and sheet preferences are remembered locally for repeated bulk-printing sessions; artwork and sheet contents are not persisted.
 
 ## Tool Roadmap
 
