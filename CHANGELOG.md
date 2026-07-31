@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.2 - 2026-07-31
+
+### Feature
+
+- improve ui and ux for standeecrafter (`866605f`)
+
+### CI
+
+- make gh pages push only run on release (`fb736a8`)
+
 ## 0.1.1 - 2026-07-31
 
 ### Feature
