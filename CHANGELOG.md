@@ -1,17 +1,13 @@
 # Changelog
 
-All notable changes to this project are documented here.
+## 0.1.0 - 2026-07-31
 
-## 1.0.0 - 2026-07-31
+### Feature
 
-### Added
+- add vite and ts, add overview page (`688570b`)
+- setup baseline mvp (`3ef00d1`)
 
-- Overview page for the growing collection of TTRPG tools.
-- Vite and TypeScript static build with a GitHub Pages deployment workflow.
-- Automatic label clearance above mini artwork.
-- Optional bottom clearance for acrylic stands.
+### Other
 
-### Fixed
+- Initial commit (`942357b`)
 
-- Vertically flipped mini silhouettes now form an accurate back.
-- Consistent spacing between controls in the Standeecrafter sidebar.
