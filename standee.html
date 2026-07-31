@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Create correctly sized foldable A4 paper miniatures from character artwork.">
+  <meta name="color-scheme" content="dark">
+  <title>Standeecrafter — TTRPG Tools</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="standee-page">
+  <nav class="tool-nav" aria-label="Tool navigation">
+    <a href="./"><span aria-hidden="true">←</span> All tools</a>
+    <span>Standeecrafter</span>
+  </nav>
+  <div class="app-shell">
+    <aside class="workbench" aria-label="Standee controls">
+      <header class="brand">
+        <div class="brand-mark" aria-hidden="true"><span>✦</span></div>
+        <div>
+          <p class="eyebrow">The paper miniature forge</p>
+          <h1>Standeecrafter</h1>
+        </div>
+      </header>
+
+      <p class="intro">Turn character art into correctly sized, foldable A4 standees for your tabletop.</p>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <span class="rune" aria-hidden="true">I</span>
+          <div><p class="step">Step one</p><h2>Choose the character</h2></div>
+        </div>
+
+        <label class="upload-zone" id="dropZone" for="fileInput">
+          <input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp">
+          <span class="upload-icon" aria-hidden="true">⌁</span>
+          <span class="upload-copy">
+            <strong id="uploadTitle">Choose character artwork</strong>
+            <small>PNG, JPG or WebP · transparent PNG works best</small>
+          </span>
+        </label>
+
+        <div class="selected-art" id="selectedArt" hidden>
+          <div class="selected-thumb"><img id="selectedPreview" alt="Selected character preview"></div>
+          <div>
+            <strong id="selectedFilename"></strong>
+            <small id="selectedDimensions"></small>
+            <small>The image remains selected after adding a standee.</small>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="characterName">Character name</label>
+          <input id="characterName" autocomplete="off" placeholder="e.g. Brynn, Ashen Warden">
+        </div>
+
+        <div class="field">
+          <label for="creatureSize">Creature size / base width</label>
+          <select id="creatureSize">
+            <option value="0.5">Tiny — 0.5 inch</option>
+            <option value="1">Small — 1 inch</option>
+            <option value="1" selected>Medium — 1 inch</option>
+            <option value="2">Large — 2 inches</option>
+            <option value="3">Huge — 3 inches</option>
+            <option value="4">Gargantuan — 4 inches</option>
+          </select>
+        </div>
+
+        <div class="two-columns">
+          <div class="field">
+            <label for="heightOverride">Height in inches <span class="optional">optional</span></label>
+            <input id="heightOverride" type="number" min="0.25" max="12" step="0.05" placeholder="Auto">
+            <small id="autoHeightHint" class="field-hint">Chosen automatically from the image.</small>
+          </div>
+          <div class="field">
+            <label for="copies">Copies</label>
+            <input id="copies" type="number" min="1" max="50" value="1">
+          </div>
+        </div>
+
+        <button class="primary-action" id="addStandee" type="button">
+          <span aria-hidden="true">＋</span> Add standee to sheet
+        </button>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <span class="rune" aria-hidden="true">II</span>
+          <div><p class="step">Step two</p><h2>Prepare the parchment</h2></div>
+        </div>
+
+        <div class="two-columns">
+          <div class="field"><label for="pageMargin">Page margin</label><div class="unit-input"><input id="pageMargin" type="number" min="3" max="25" value="8"><span>mm</span></div></div>
+          <div class="field"><label for="itemGap">Standee gap</label><div class="unit-input"><input id="itemGap" type="number" min="0" max="15" value="4"><span>mm</span></div></div>
+          <div class="field"><label for="glueTab">Glue tab</label><div class="unit-input"><input id="glueTab" type="number" min="0" max="20" value="8"><span>mm</span></div></div>
+          <div class="field"><label for="labelSize">Label size</label><div class="unit-input"><input id="labelSize" type="number" min="0" max="16" value="7"><span>pt</span></div></div>
+          <div class="field"><label for="bottomSpace">Bottom clearance <span class="optional">optional</span></label><div class="unit-input"><input id="bottomSpace" type="number" min="0" max="30" step="0.5" value="0"><span>mm</span></div><small>Extra material for an acrylic stand.</small></div>
+        </div>
+
+        <div class="toggle-grid">
+          <label class="toggle"><input id="showLabels" type="checkbox" checked><span></span>Character labels</label>
+          <label class="toggle"><input id="showLines" type="checkbox" checked><span></span>Cut and fold guides</label>
+        </div>
+      </section>
+
+      <section class="panel roster-panel">
+        <div class="panel-heading compact">
+          <span class="rune" aria-hidden="true">III</span>
+          <div><p class="step">Your roster</p><h2>Standees on the sheet</h2></div>
+        </div>
+        <div id="roster" class="roster"></div>
+      </section>
+
+      <div id="layoutWarning" class="layout-warning" hidden></div>
+
+      <div class="footer-actions">
+        <button class="print-action" id="printButton" type="button"><span aria-hidden="true">⌘</span> Print / Save as PDF</button>
+        <button class="ghost-action danger" id="clearButton" type="button">Clear sheet</button>
+      </div>
+    </aside>
+
+    <main class="preview-area">
+      <div class="preview-toolbar">
+        <div>
+          <p class="eyebrow">A4 print preview</p>
+          <h2>Your standee sheets</h2>
+        </div>
+        <div class="print-instructions"><strong>Print at 100% / Actual size.</strong><span>Use A4 portrait and disable headers and footers.</span></div>
+      </div>
+      <div id="pages" class="pages" aria-live="polite"></div>
+    </main>
+  </div>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

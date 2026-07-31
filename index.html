@@ -3,127 +3,59 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Browser-based tools for preparing and running tabletop role-playing games.">
   <meta name="color-scheme" content="dark">
-  <title>Standeecrafter — A4 TTRPG Paper Mini Maker</title>
+  <title>TTRPG Tools — Small tools for grand adventures</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <div class="app-shell">
-    <aside class="workbench" aria-label="Standee controls">
-      <header class="brand">
-        <div class="brand-mark" aria-hidden="true"><span>✦</span></div>
+<body class="overview-page">
+  <header class="site-header">
+    <a class="site-brand" href="./" aria-label="TTRPG Tools home">
+      <span class="brand-mark" aria-hidden="true"><span>✦</span></span>
+      <span><small>The adventurer's workbench</small><strong>TTRPG Tools</strong></span>
+    </a>
+    <a class="github-link" href="https://github.com/Savutro/ttrpg-tools">View on GitHub <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main class="overview">
+    <section class="hero">
+      <p class="eyebrow">Small tools for grand adventures</p>
+      <h1>Spend less time preparing.<br><span>Play more.</span></h1>
+      <p>Practical, browser-based helpers for game masters and players. No accounts, no uploads, and no backend—your campaign material stays on your device.</p>
+    </section>
+
+    <section class="tool-section" aria-labelledby="tools-heading">
+      <div class="section-heading">
         <div>
-          <p class="eyebrow">The paper miniature forge</p>
-          <h1>Standeecrafter</h1>
+          <p class="eyebrow">The toolbox</p>
+          <h2 id="tools-heading">Choose a tool</h2>
         </div>
-      </header>
-
-      <p class="intro">Turn character art into correctly sized, foldable A4 standees for your tabletop.</p>
-
-      <section class="panel">
-        <div class="panel-heading">
-          <span class="rune" aria-hidden="true">I</span>
-          <div><p class="step">Step one</p><h2>Choose the character</h2></div>
-        </div>
-
-        <label class="upload-zone" id="dropZone" for="fileInput">
-          <input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp">
-          <span class="upload-icon" aria-hidden="true">⌁</span>
-          <span class="upload-copy">
-            <strong id="uploadTitle">Choose character artwork</strong>
-            <small>PNG, JPG or WebP · transparent PNG works best</small>
-          </span>
-        </label>
-
-        <div class="selected-art" id="selectedArt" hidden>
-          <div class="selected-thumb"><img id="selectedPreview" alt="Selected character preview"></div>
-          <div>
-            <strong id="selectedFilename"></strong>
-            <small id="selectedDimensions"></small>
-            <small>The image remains selected after adding a standee.</small>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="characterName">Character name</label>
-          <input id="characterName" autocomplete="off" placeholder="e.g. Brynn, Ashen Warden">
-        </div>
-
-        <div class="field">
-          <label for="creatureSize">Creature size / base width</label>
-          <select id="creatureSize">
-            <option value="0.5">Tiny — 0.5 inch</option>
-            <option value="1">Small — 1 inch</option>
-            <option value="1" selected>Medium — 1 inch</option>
-            <option value="2">Large — 2 inches</option>
-            <option value="3">Huge — 3 inches</option>
-            <option value="4">Gargantuan — 4 inches</option>
-          </select>
-        </div>
-
-        <div class="two-columns">
-          <div class="field">
-            <label for="heightOverride">Height in inches <span class="optional">optional</span></label>
-            <input id="heightOverride" type="number" min="0.25" max="12" step="0.05" placeholder="Auto">
-            <small id="autoHeightHint" class="field-hint">Chosen automatically from the image.</small>
-          </div>
-          <div class="field">
-            <label for="copies">Copies</label>
-            <input id="copies" type="number" min="1" max="50" value="1">
-          </div>
-        </div>
-
-        <button class="primary-action" id="addStandee" type="button">
-          <span aria-hidden="true">＋</span> Add standee to sheet
-        </button>
-      </section>
-
-      <section class="panel">
-        <div class="panel-heading">
-          <span class="rune" aria-hidden="true">II</span>
-          <div><p class="step">Step two</p><h2>Prepare the parchment</h2></div>
-        </div>
-
-        <div class="two-columns">
-          <div class="field"><label for="pageMargin">Page margin</label><div class="unit-input"><input id="pageMargin" type="number" min="3" max="25" value="8"><span>mm</span></div></div>
-          <div class="field"><label for="itemGap">Standee gap</label><div class="unit-input"><input id="itemGap" type="number" min="0" max="15" value="4"><span>mm</span></div></div>
-          <div class="field"><label for="glueTab">Glue tab</label><div class="unit-input"><input id="glueTab" type="number" min="0" max="20" value="8"><span>mm</span></div></div>
-          <div class="field"><label for="labelSize">Label size</label><div class="unit-input"><input id="labelSize" type="number" min="0" max="16" value="7"><span>pt</span></div></div>
-        </div>
-
-        <div class="toggle-grid">
-          <label class="toggle"><input id="showLabels" type="checkbox" checked><span></span>Character labels</label>
-          <label class="toggle"><input id="showLines" type="checkbox" checked><span></span>Cut and fold guides</label>
-        </div>
-      </section>
-
-      <section class="panel roster-panel">
-        <div class="panel-heading compact">
-          <span class="rune" aria-hidden="true">III</span>
-          <div><p class="step">Your roster</p><h2>Standees on the sheet</h2></div>
-        </div>
-        <div id="roster" class="roster"></div>
-      </section>
-
-      <div id="layoutWarning" class="layout-warning" hidden></div>
-
-      <div class="footer-actions">
-        <button class="print-action" id="printButton" type="button"><span aria-hidden="true">⌘</span> Print / Save as PDF</button>
-        <button class="ghost-action danger" id="clearButton" type="button">Clear sheet</button>
+        <p>More workshop drawers will appear here as they are forged.</p>
       </div>
-    </aside>
 
-    <main class="preview-area">
-      <div class="preview-toolbar">
-        <div>
-          <p class="eyebrow">A4 print preview</p>
-          <h2>Your standee sheets</h2>
-        </div>
-        <div class="print-instructions"><strong>Print at 100% / Actual size.</strong><span>Use A4 portrait and disable headers and footers.</span></div>
+      <div class="tool-grid">
+        <a class="tool-card available" href="standee.html">
+          <span class="tool-icon" aria-hidden="true">♙</span>
+          <span class="tool-status">Available now</span>
+          <h3>Standeecrafter</h3>
+          <p>Turn character artwork into correctly sized, foldable paper miniatures arranged on printable A4 sheets.</p>
+          <span class="tool-action">Open the forge <span aria-hidden="true">→</span></span>
+        </a>
+
+        <article class="tool-card forthcoming">
+          <span class="tool-icon" aria-hidden="true">✧</span>
+          <span class="tool-status">Future tool</span>
+          <h3>The next useful thing</h3>
+          <p>This space is ready for another focused helper for the table, without turning the toolbox into a campaign manager.</p>
+          <span class="tool-action">Still at the sketching table</span>
+        </article>
       </div>
-      <div id="pages" class="pages" aria-live="polite"></div>
-    </main>
-  </div>
-  <script src="app.js"></script>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>TTRPG Tools</span>
+    <span>Made for tables, not trackers.</span>
+  </footer>
 </body>
 </html>

@@ -4,64 +4,108 @@
   const MM_PER_INCH = 25.4;
   const PAGE_WIDTH_MM = 210;
   const PAGE_HEIGHT_MM = 297;
-  const $ = (selector) => document.querySelector(selector);
-
-  const ui = {
-    fileInput: $('#fileInput'),
-    dropZone: $('#dropZone'),
-    uploadTitle: $('#uploadTitle'),
-    selectedArt: $('#selectedArt'),
-    selectedPreview: $('#selectedPreview'),
-    selectedFilename: $('#selectedFilename'),
-    selectedDimensions: $('#selectedDimensions'),
-    characterName: $('#characterName'),
-    creatureSize: $('#creatureSize'),
-    heightOverride: $('#heightOverride'),
-    autoHeightHint: $('#autoHeightHint'),
-    copies: $('#copies'),
-    addStandee: $('#addStandee'),
-    pageMargin: $('#pageMargin'),
-    itemGap: $('#itemGap'),
-    glueTab: $('#glueTab'),
-    labelSize: $('#labelSize'),
-    showLabels: $('#showLabels'),
-    showLines: $('#showLines'),
-    roster: $('#roster'),
-    pages: $('#pages'),
-    layoutWarning: $('#layoutWarning'),
-    printButton: $('#printButton'),
-    clearButton: $('#clearButton')
+  const $ = <T extends Element>(selector: string): T => {
+    const element = document.querySelector<T>(selector);
+    if (!element) throw new Error(`Required element not found: ${selector}`);
+    return element;
   };
 
-  let selectedImage = null;
-  let standees = [];
+  interface SelectedImage {
+    src: string;
+    filename: string;
+    width: number;
+    height: number;
+    aspectRatio: number;
+  }
+
+  interface Standee {
+    id: number;
+    name: string;
+    src: string;
+    filename: string;
+    imageWidth: number;
+    imageHeight: number;
+    aspectRatio: number;
+    baseWidthInches: number;
+    heightOverrideInches: number | null;
+    copies: number;
+  }
+
+  interface ExpandedStandee extends Standee {
+    widthMm: number;
+    artworkHeightMm: number;
+    panelHeightMm: number;
+    totalHeightMm: number;
+    tabHeightMm: number;
+    topSpaceMm: number;
+    bottomSpaceMm: number;
+  }
+
+  interface PlacedStandee extends ExpandedStandee {
+    oversized: boolean;
+    x: number;
+    y: number;
+  }
+
+  const ui = {
+    fileInput: $<HTMLInputElement>('#fileInput'),
+    dropZone: $<HTMLElement>('#dropZone'),
+    uploadTitle: $<HTMLElement>('#uploadTitle'),
+    selectedArt: $<HTMLElement>('#selectedArt'),
+    selectedPreview: $<HTMLImageElement>('#selectedPreview'),
+    selectedFilename: $<HTMLElement>('#selectedFilename'),
+    selectedDimensions: $<HTMLElement>('#selectedDimensions'),
+    characterName: $<HTMLInputElement>('#characterName'),
+    creatureSize: $<HTMLSelectElement>('#creatureSize'),
+    heightOverride: $<HTMLInputElement>('#heightOverride'),
+    autoHeightHint: $<HTMLElement>('#autoHeightHint'),
+    copies: $<HTMLInputElement>('#copies'),
+    addStandee: $<HTMLButtonElement>('#addStandee'),
+    pageMargin: $<HTMLInputElement>('#pageMargin'),
+    itemGap: $<HTMLInputElement>('#itemGap'),
+    glueTab: $<HTMLInputElement>('#glueTab'),
+    labelSize: $<HTMLInputElement>('#labelSize'),
+    bottomSpace: $<HTMLInputElement>('#bottomSpace'),
+    showLabels: $<HTMLInputElement>('#showLabels'),
+    showLines: $<HTMLInputElement>('#showLines'),
+    roster: $<HTMLElement>('#roster'),
+    pages: $<HTMLElement>('#pages'),
+    layoutWarning: $<HTMLElement>('#layoutWarning'),
+    printButton: $<HTMLButtonElement>('#printButton'),
+    clearButton: $<HTMLButtonElement>('#clearButton')
+  };
+
+  let selectedImage: SelectedImage | null = null;
+  let standees: Standee[] = [];
   let nextId = 1;
   let hasOversizedItems = false;
 
-  const numericValue = (element, fallback) => {
+  const numericValue = (element: HTMLInputElement | HTMLSelectElement, fallback: number): number => {
     const value = Number.parseFloat(element.value);
     return Number.isFinite(value) ? value : fallback;
   };
 
-  const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({
+  const escapeHtml = (value: unknown): string => String(value).replace(/[&<>'"]/g, (character) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-  })[character]);
+  } satisfies Record<string, string>)[character] ?? character);
 
-  const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+  const readFileAsDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
+    reader.onload = () => typeof reader.result === 'string'
+      ? resolve(reader.result)
+      : reject(new Error('Could not read the image.'));
     reader.onerror = () => reject(reader.error || new Error('Could not read the image.'));
     reader.readAsDataURL(file);
   });
 
-  const readImageDimensions = (src) => new Promise((resolve, reject) => {
+  const readImageDimensions = (src: string): Promise<{ width: number; height: number }> => new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
     image.onerror = () => reject(new Error('The selected image could not be opened.'));
     image.src = src;
   });
 
-  async function selectFile(file) {
+  async function selectFile(file?: File) {
     if (!file || !/^image\/(png|jpeg|webp)$/.test(file.type)) {
       window.alert('Choose a PNG, JPG, or WebP image.');
       return;
@@ -90,7 +134,7 @@
       updateAutoHeightHint();
     } catch (error) {
       console.error(error);
-      window.alert(error.message || 'The selected image could not be loaded.');
+      window.alert(error instanceof Error ? error.message : 'The selected image could not be loaded.');
     }
   }
 
@@ -98,7 +142,7 @@
     return Math.max(0.25, numericValue(ui.creatureSize, 1));
   }
 
-  function getPanelHeightInches(image, overrideValue = ui.heightOverride.value) {
+  function getPanelHeightInches(image: SelectedImage, overrideValue = ui.heightOverride.value) {
     const override = Number.parseFloat(overrideValue);
     if (Number.isFinite(override) && override > 0) return override;
     return getBaseWidthInches() * image.aspectRatio;
@@ -143,38 +187,53 @@
     render();
   }
 
-  function duplicateStandee(id) {
+  function duplicateStandee(id: number) {
     const original = standees.find((standee) => standee.id === id);
     if (!original) return;
     standees.push({ ...original, id: nextId++ });
     render();
   }
 
-  function removeStandee(id) {
+  function removeStandee(id: number) {
     standees = standees.filter((standee) => standee.id !== id);
     render();
   }
 
   function expandedStandees() {
     const tabHeightMm = Math.max(0, numericValue(ui.glueTab, 8));
-    const output = [];
+    const labelSizePt = Math.max(0, numericValue(ui.labelSize, 7));
+    const topSpaceMm = ui.showLabels.checked && labelSizePt > 0
+      ? Math.max(4, (labelSizePt * 0.3528) + 2.2)
+      : 0;
+    const bottomSpaceMm = Math.max(0, numericValue(ui.bottomSpace, 0));
+    const output: ExpandedStandee[] = [];
 
     for (const standee of standees) {
       const widthMm = standee.baseWidthInches * MM_PER_INCH;
       const panelHeightInches = standee.heightOverrideInches || (standee.baseWidthInches * standee.aspectRatio);
-      const panelHeightMm = panelHeightInches * MM_PER_INCH;
+      const artworkHeightMm = panelHeightInches * MM_PER_INCH;
+      const panelHeightMm = artworkHeightMm + topSpaceMm + bottomSpaceMm;
       const totalHeightMm = (panelHeightMm * 2) + tabHeightMm;
 
       for (let copy = 0; copy < standee.copies; copy += 1) {
-        output.push({ ...standee, widthMm, panelHeightMm, totalHeightMm, tabHeightMm });
+        output.push({
+          ...standee,
+          widthMm,
+          artworkHeightMm,
+          panelHeightMm,
+          totalHeightMm,
+          tabHeightMm,
+          topSpaceMm,
+          bottomSpaceMm
+        });
       }
     }
     return output;
   }
 
-  function packStandees(items, availableWidth, availableHeight, gap) {
-    const pages = [];
-    let currentPage = [];
+  function packStandees(items: ExpandedStandee[], availableWidth: number, availableHeight: number, gap: number): PlacedStandee[][] {
+    const pages: PlacedStandee[][] = [];
+    let currentPage: PlacedStandee[] = [];
     let x = 0;
     let y = 0;
     let rowHeight = 0;
@@ -216,14 +275,15 @@
     return pages;
   }
 
-  function createSide(className, standee, panelHeightMm) {
+  function createSide(className: 'front-side' | 'back-side', standee: ExpandedStandee) {
     const side = document.createElement('div');
     side.className = `panel-side ${className}`;
-    side.style.height = `${panelHeightMm}mm`;
+    side.style.height = `${standee.panelHeightMm}mm`;
 
     const image = document.createElement('img');
     image.src = standee.src;
     image.alt = '';
+    image.style.height = `${standee.artworkHeightMm}mm`;
     side.append(image);
 
     if (className === 'front-side' && ui.showLabels.checked && numericValue(ui.labelSize, 7) > 0) {
@@ -297,12 +357,14 @@
           `width:${item.widthMm}mm`,
           `height:${item.totalHeightMm}mm`,
           `--panel-height:${item.panelHeightMm}mm`,
-          `--tab-height:${item.tabHeightMm}mm`
+          `--tab-height:${item.tabHeightMm}mm`,
+          `--label-space:${item.topSpaceMm}mm`,
+          `--bottom-space:${item.bottomSpaceMm}mm`
         ].join(';');
 
-        // Sheet order: upside-down silhouette, head fold, upright front, glue tab.
-        standee.append(createSide('back-side', item, item.panelHeightMm));
-        standee.append(createSide('front-side', item, item.panelHeightMm));
+        // Sheet order: vertically flipped silhouette, head fold, upright front, glue tab.
+        standee.append(createSide('back-side', item));
+        standee.append(createSide('front-side', item));
 
         const foldLine = document.createElement('div');
         foldLine.className = 'fold-line';
@@ -330,8 +392,11 @@
     }
 
     if (hasOversizedItems) {
-      const maxPanelHeightMm = Math.max(0, (availableHeight - Math.max(0, numericValue(ui.glueTab, 8))) / 2);
-      ui.layoutWarning.innerHTML = `<strong>One or more standees are too tall for A4.</strong> With the current margins and glue tab, the maximum character height is ${(maxPanelHeightMm / MM_PER_INCH).toFixed(2)} inches. Enter a smaller optional height for those standees before printing.`;
+      const labelSizePt = Math.max(0, numericValue(ui.labelSize, 7));
+      const topSpaceMm = ui.showLabels.checked && labelSizePt > 0 ? Math.max(4, (labelSizePt * 0.3528) + 2.2) : 0;
+      const reservedSpaceMm = topSpaceMm + Math.max(0, numericValue(ui.bottomSpace, 0));
+      const maxArtworkHeightMm = Math.max(0, ((availableHeight - Math.max(0, numericValue(ui.glueTab, 8))) / 2) - reservedSpaceMm);
+      ui.layoutWarning.innerHTML = `<strong>One or more standees are too tall for A4.</strong> With the current margins, label, bottom clearance, and glue tab, the maximum character height is ${(maxArtworkHeightMm / MM_PER_INCH).toFixed(2)} inches. Enter a smaller optional height for those standees before printing.`;
       ui.layoutWarning.hidden = false;
     } else {
       ui.layoutWarning.hidden = true;
@@ -343,16 +408,16 @@
     renderPages();
   }
 
-  ui.fileInput.addEventListener('change', () => selectFile(ui.fileInput.files[0]));
+  ui.fileInput.addEventListener('change', () => selectFile(ui.fileInput.files?.[0]));
   ui.dropZone.addEventListener('dragover', (event) => {
     event.preventDefault();
     ui.dropZone.classList.add('dragover');
   });
   ui.dropZone.addEventListener('dragleave', () => ui.dropZone.classList.remove('dragover'));
-  ui.dropZone.addEventListener('drop', (event) => {
+  ui.dropZone.addEventListener('drop', (event: DragEvent) => {
     event.preventDefault();
     ui.dropZone.classList.remove('dragover');
-    const file = event.dataTransfer.files[0];
+    const file = event.dataTransfer?.files[0];
     if (file) selectFile(file);
   });
 
@@ -361,14 +426,15 @@
   ui.heightOverride.addEventListener('input', updateAutoHeightHint);
 
   ui.roster.addEventListener('click', (event) => {
-    const button = event.target.closest('button[data-action]');
+    const button = (event.target as Element | null)?.closest<HTMLButtonElement>('button[data-action]');
     if (!button) return;
-    const id = Number.parseInt(button.dataset.id, 10);
+    const id = Number.parseInt(button.dataset.id ?? '', 10);
+    if (!Number.isFinite(id)) return;
     if (button.dataset.action === 'duplicate') duplicateStandee(id);
     if (button.dataset.action === 'remove') removeStandee(id);
   });
 
-  [ui.pageMargin, ui.itemGap, ui.glueTab, ui.labelSize, ui.showLabels, ui.showLines]
+  [ui.pageMargin, ui.itemGap, ui.glueTab, ui.labelSize, ui.bottomSpace, ui.showLabels, ui.showLines]
     .forEach((element) => {
       element.addEventListener('input', renderPages);
       element.addEventListener('change', renderPages);
